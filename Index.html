@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Personal Budget</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- CSS RESET & DEFAULTS --- */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1E1E1E;
+            --primary-text: #EAEAEA;
+            --secondary-text: #A0A0A0;
+            --accent-teal: #00FAD9;
+            --accent-pink: #FF5A8D;
+            --accent-blue: #5A9CFF;
+            --accent-yellow: #FFC95A;
+            --accent-purple: #B15AFF;
+            --border-color: #333333;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --border-radius: 10px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            overscroll-behavior-y: contain;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-size: 15px;
+        }
+        
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translateX(50%) scale(1); }
+            50% { transform: translateX(50%) scale(1.05); }
+            100% { transform: translateX(50%) scale(1); }
+        }
+
+        /* --- LAYOUT & MAIN CONTAINER --- */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .app-container {
+            max-width: 450px;
+            margin: 0 auto;
+            padding: 20px 12px 100px 12px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Ambient Glow Effect */
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: -10%;
+            left: 10%;
+            width: 80%;
+            height: 40%;
+            background: radial-gradient(ellipse at top, rgba(0, 250, 217, 0.15), transparent 70%);
+            filter: blur(60px);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        /* --- HEADER --- */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            opacity: 0; /* For animation */
+        }
+        
+        .month-navigator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-grow: 1;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            background: none; border: none; cursor: pointer; padding: 6px;
+        }
+        .nav-btn svg {
+            width: 22px; height: 22px;
+            fill: var(--secondary-text);
+            transition: fill 0.3s ease;
+        }
+        .nav-btn:hover svg { fill: var(--primary-text); }
+
+        #headerDate { font-size: 20px; font-weight: 600; text-align: center; }
+
+        .settings-btn {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .settings-btn:hover { background-color: #2a2a2a; }
+        .settings-btn svg { width: 20px; height: 20px; fill: var(--primary-text); }
+
+        /* --- SUMMARY CARDS --- */
+        .summary-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 12px; margin-bottom: 20px;
+        }
+        .summary-card {
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px var(--shadow-color);
+            opacity: 0;
+        }
+        .summary-card.balance { grid-column: 1 / -1; text-align: center; }
+        .summary-card h3 {
+            font-size: 13px; font-weight: 500;
+            color: var(--secondary-text); margin-bottom: 6px;
+        }
+        .summary-card p { font-size: 24px; font-weight: 700; }
+        .income-amount, .expense-amount {
+            background-clip: text; -webkit-background-clip: text; color: transparent;
+        }
+        .income-amount { background-image: linear-gradient(45deg, var(--accent-teal), #4cfd9b); }
+        .expense-amount { background-image: linear-gradient(45deg, var(--accent-pink), #ff89a1); }
+        
+        /* --- EXPENSE BREAKDOWN (NEW DESIGN) --- */
+        .budget-overview {
+            margin-bottom: 24px; 
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            padding: 16px; border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px var(--shadow-color);
+            opacity: 0;
+        }
+        .budget-overview h3 {
+            font-size: 16px; font-weight: 600;
+            margin-bottom: 12px; text-align: center;
+        }
+        #expenseBreakdownContainer { display: flex; flex-direction: column; gap: 12px; }
+        .breakdown-item {
+            display: flex; flex-direction: column;
+            gap: 6px;
+        }
+        .breakdown-item-header {
+            display: flex; justify-content: space-between;
+            font-size: 14px;
+        }
+        .breakdown-item-category { font-weight: 500; color: var(--primary-text); }
+        .breakdown-item-amount { font-weight: 500; color: var(--secondary-text); }
+        .progress-bar-background {
+            width: 100%; height: 6px;
+            background-color: var(--bg-color);
+            border-radius: 3px; overflow: hidden;
+        }
+        .progress-bar-foreground {
+            height: 100%; width: 0%;
+            border-radius: 3px;
+            transition: width 0.5s ease-out;
+        }
+
+        /* --- TRANSACTION LIST --- */
+        .transaction-list h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+        .transaction-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--border-radius); 
+            margin-bottom: 10px;
+            opacity: 0;
+            background-color: var(--surface-color); /* Add solid background to parent */
+        }
+
+        .transaction-item-content {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            position: relative; /* Make sure content is on top */
+            z-index: 2;
+            transition: transform 0.3s ease;
+            width: 100%;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+        }
+        
+        .transaction-item.income .transaction-item-content { border-left: 4px solid var(--accent-teal); }
+        .transaction-item.expense .transaction-item-content { border-left: 4px solid var(--accent-pink); }
+        
+        .transaction-item.swiped .transaction-item-content { transform: translateX(-100px); }
+        
+        .transaction-icon {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            margin-right: 10px;
+        }
+        .transaction-icon.income { background-color: rgba(0, 250, 217, 0.1); }
+        .transaction-icon.expense { background-color: rgba(255, 90, 141, 0.1); }
+        .transaction-icon svg { width: 20px; height: 20px; fill: var(--primary-text); }
+        .transaction-details { flex-grow: 1; }
+        .transaction-details p:first-child { font-weight: 500; font-size: 15px; }
+        .transaction-details p:last-child { font-size: 11px; color: var(--secondary-text); }
+        .transaction-amount { font-weight: 600; font-size: 15px; margin-left: 10px; }
+        
+        .transaction-actions {
+            position: absolute; right: 0; top: 0;
+            height: 100%; display: flex; z-index: 1;
+        }
+        .action-btn {
+            width: 50px; height: 100%;
+            background: none; border: none;
+            color: white; display: flex;
+            justify-content: center; align-items: center;
+            cursor: pointer; transition: background-color 0.2s ease;
+        }
+        .action-btn:hover { background-color: #2a2a2a; }
+        .action-btn.edit svg { fill: var(--accent-blue); }
+        .action-btn.delete svg { fill: var(--accent-pink); }
+        .action-btn svg { width: 20px; height: 20px; }
+
+        .empty-state { text-align: center; color: var(--secondary-text); padding: 30px 0; opacity: 0; }
+        .empty-state svg { width: 80px; height: 80px; margin-bottom: 16px; stroke: var(--secondary-text); }
+
+        /* --- FLOATING ACTION BUTTON (FAB) --- */
+        .fab {
+            position: fixed; bottom: 25px; right: 50%;
+            transform: translateX(50%);
+            width: 58px; height: 58px;
+            border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.3s ease;
+            z-index: 999;
+            
+            /* Liquid Glass Effect */
+            background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 60%), 
+                        rgba(0, 250, 217, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 
+                        inset 0px 2px 2px rgba(255, 255, 255, 0.25),
+                        inset 0px -2px 2px rgba(0, 0, 0, 0.15);
+
+            animation: pulse 2.5s infinite;
+        }
+        .fab:active { animation: none; transform: translateX(50%) scale(0.95); }
+        .fab svg { width: 28px; height: 28px; fill: var(--accent-teal); }
+
+        /* --- MODAL --- */
+        .modal {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: flex-end;
+            z-index: 1000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        .modal.confirm { align-items: center; }
+        .modal.open { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--surface-color);
+            width: 100%; max-width: 450px;
+            padding: 20px 16px;
+            border-top-left-radius: 16px; border-top-right-radius: 16px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal.confirm .modal-content {
+            border-radius: 12px; max-width: 350px;
+            transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        .modal.open .modal-content { transform: translateY(0); }
+        .modal.confirm.open .modal-content { transform: scale(1); }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-size: 18px; font-weight: 600; }
+        .close-btn { background: none; border: none; cursor: pointer; }
+        .close-btn svg { fill: var(--secondary-text); width: 24px; height: 24px; }
+
+        /* --- FORM STYLES --- */
+        .form-group { margin-bottom: 16px; }
+        .form-label {
+            display: block; font-size: 13px; font-weight: 500;
+            color: var(--secondary-text); margin-bottom: 8px;
+        }
+        .form-input, .form-select {
+            width: 100%; padding: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--primary-text);
+            font-size: 15px; font-family: 'Inter', sans-serif;
+            appearance: none;
+        }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent-teal); }
+        .type-toggle {
+            display: flex; background-color: var(--bg-color);
+            border-radius: var(--border-radius);
+            padding: 4px; border: 1px solid var(--border-color);
+        }
+        .toggle-btn {
+            flex: 1; padding: 8px; border: none;
+            background-color: transparent; color: var(--secondary-text);
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            border-radius: 7px; transition: all 0.3s ease;
+        }
+        .toggle-btn.active.expense { background-color: var(--accent-pink); color: white; }
+        .toggle-btn.active.income { background-color: var(--accent-teal); color: var(--bg-color); }
+        .recurring-toggle { display: flex; justify-content: space-between; align-items: center; }
+        .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            transition: .4s; border-radius: 26px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: var(--secondary-text);
+            transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent-teal); border-color: var(--accent-teal); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+        #recurringOptions {
+            display: none; padding-top: 16px;
+            border-top: 1px solid var(--border-color); margin-top: 16px;
+        }
+        .submit-btn {
+            width: 100%; padding: 14px;
+            background: var(--accent-teal);
+            border: none; border-radius: var(--border-radius);
+            color: var(--bg-color);
+            font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .submit-btn:hover { opacity: 0.9; }
+
+        /* --- SETTINGS & CONFIRM MODAL --- */
+        #settingsModal .modal-content h3 {
+             font-size: 15px; color: var(--primary-text);
+             margin-top: 16px; margin-bottom: 8px;
+             border-top: 1px solid var(--border-color); padding-top: 16px;
+        }
+        #recurringList { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; }
+        #recurringList li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; background-color: var(--bg-color);
+            border-radius: var(--border-radius); margin-bottom: 8px;
+        }
+        .delete-recurring-btn { background: none; border: none; cursor: pointer; padding: 5px; }
+        .delete-recurring-btn svg { width: 18px; height: 18px; fill: var(--accent-pink); }
+        .danger-zone button { background-color: var(--accent-pink); color: white; }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="month-navigator">
+                <button class="nav-btn" id="prevMonthBtn" aria-label="Previous Month"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+                <h1 id="headerDate"></h1>
+                <button class="nav-btn" id="nextMonthBtn" aria-label="Next Month"><svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
+            </div>
+            <button class="settings-btn" id="openSettingsBtn" aria-label="Open Settings"><svg viewBox="0 0 24 24"><path d="M19.4,12c0-0.2,0-0.4,0-0.6c0-1.5-0.5-2.9-1.3-4.1l1.1-1.1c0.6-0.6,0.6-1.5,0-2.1l-1.4-1.4c-0.6-0.6-1.5-0.6-2.1,0L14.6,3.8 C13.4,3,12,2.5,10.5,2.5c-0.2,0-0.4,0-0.6,0C8.4,2.6,7,3.1,5.8,3.8L4.7,2.7c-0.6-0.6-1.5-0.6-2.1,0L1.2,4.1c-0.6,0.6-0.6,1.5,0,2.1 l1.1,1.1C1.5,8.5,1,9.9,1,11.4c0,0.2,0,0.4,0,0.6c-0.1,1.5,0.4,2.9,1.2,4.1L1.2,17.3c-0.6,0.6-0.6,1.5,0,2.1l1.4,1.4 c0.6,0.6,1.5,0.6,2.1,0l1.1-1.1c1.2,0.8,2.6,1.3,4.1,1.3c0.2,0,0.4,0,0.6,0c1.5-0.1,2.9-0.5,4.1-1.3l1.1,1.1c0.6,0.6,1.5,0.6,2.1,0 l1.4-1.4c0.6-0.6,0.6-1.5,0-2.1l-1.1-1.1C18.9,14.9,19.4,13.5,19.4,12z M12,15.5c-1.9,0-3.5-1.6-3.5-3.5s1.6-3.5,3.5-3.5 s3.5,1.6,3.5,3.5S13.9,15.5,12,15.5z"/></svg></button>
+        </header>
+
+        <!-- Summary -->
+        <section class="summary-grid">
+            <div class="summary-card"><h3 >Income</h3><p id="totalIncome" class="income-amount">£0.00</p></div>
+            <div class="summary-card"><h3 >Expenses</h3><p id="totalExpenses" class="expense-amount">£0.00</p></div>
+            <div class="summary-card balance"><h3 >Balance</h3><p id="balance">£0.00</p></div>
+        </section>
+
+        <!-- Budget Overview -->
+        <section class="budget-overview">
+            <h3>Expense Breakdown</h3>
+            <div id="expenseBreakdownContainer"></div>
+        </section>
+
+        <!-- Transaction List -->
+        <section class="transaction-list">
+            <h3>Transactions</h3>
+            <div id="transactionsContainer"></div>
+        </section>
+    </div>
+
+    <!-- Modals and FAB -->
+    <button class="fab" id="addTransactionBtn" aria-label="Add Transaction"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="modalTitle">Add Transaction</h2><button class="close-btn" id="closeTransactionModalBtn" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <form id="transactionForm"><input type="hidden" id="transactionId"><div class="form-group"><div class="type-toggle"><button type="button" id="expenseToggleBtn" class="toggle-btn expense active">Expense</button><button type="button" id="incomeToggleBtn" class="toggle-btn income">Income</button></div></div><div class="form-group"><label for="amount" class="form-label">Amount</label><input type="number" id="amount" class="form-input" placeholder="0.00" required step="0.01"></div><div class="form-group"><label for="description" class="form-label">Description</label><input type="text" id="description" class="form-input" placeholder="e.g., Groceries, Paycheck" required></div><div class="form-group"><label for="category" class="form-label">Category</label><div style="display: flex; gap: 8px;"><select id="category" class="form-select" required></select><input type="text" id="newCategory" class="form-input" placeholder="New Category" style="flex-grow: 1;"><button type="button" id="addCategoryBtn" class="submit-btn" style="padding: 0 16px; font-size: 14px;">Add</button></div></div><div class="form-group"><label for="date" class="form-label">Date</label><input type="date" id="date" class="form-input" required></div><div class="form-group"><div class="recurring-toggle"><span class="form-label" style="margin:0;">Recurring?</span><label class="switch"><input type="checkbox" id="recurring"><span class="slider"></span></label></div></div><div id="recurringOptions"><div class="form-group"><label for="frequency" class="form-label">Frequency</label><select id="frequency" class="form-select"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div><div class="form-group"><label for="endDate" class="form-label">End Date (Optional)</label><input type="date" id="endDate" class="form-input"></div></div><button type="submit" class="submit-btn">Save Transaction</button></form>
+        </div>
+    </div>
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Settings</h2><button class="close-btn" id="closeSettingsModalBtn" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <h3>Recurring Transactions</h3><ul id="recurringList"></ul>
+            <div class="danger-zone"><h3>Danger Zone</h3><button id="clearDataBtn" class="submit-btn">Clear All Data</button></div>
+        </div>
+    </div>
+    <div id="confirmModal" class="modal confirm">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="confirmTitle">Are you sure?</h2></div>
+            <p id="confirmMessage" style="color: var(--secondary-text); margin-bottom: 24px;">This action is permanent and cannot be undone. All your data will be deleted.</p>
+            <div style="display: flex; gap: 12px;"><button id="cancelConfirmBtn" class="submit-btn" style="background-color: var(--border-color); color: var(--primary-text); flex: 1;">Cancel</button><button id="confirmBtn" class="submit-btn" style="background-color: var(--accent-pink); flex: 1;">Delete</button></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialCategories = ['Food', 'Transport', 'Salary', 'Utilities', 'Entertainment', 'Shopping', 'Health', 'Other'];
+            const state = { transactions: [], categories: [...initialCategories], recurringTransactions: [], currentDate: new Date() };
+            const categoryIcons = {'Food': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>','Transport': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM3 10V6h10v4H3z"/></svg>','Salary': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.11-.9-2-2-2zm-1 14H5c-.55 0-1-.45-1-1v-5h16v5c0 .55-.45 1-1 1zm1-10H4V7c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v1z"/></svg>','Utilities': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.89 0 1.74-.12 2.55-.33-.3-.49-.55-1.06-.55-1.67 0-1.66 1.34-3 3-3 .61 0 1.18.25 1.67.56.21-.81.33-1.66.33-2.56 0-5.52-4.48-10-10-10zm2.71 11.6c-.33.33-.77.53-1.24.53-1.02 0-1.85-.83-1.85-1.85 0-.47.19-.92.53-1.24.32-.33.52-.77.52-1.25s-.2-1-.53-1.24c-.32-.33-.77-.52-1.24-.52-1.02 0-1.85.83-1.85 1.85 0 .47.2.92.53 1.24.33.32.53.77.53 1.25 0 .97-.53 1.8-1.34 2.21-1.35.68-2.29 2-2.29 3.44 0 1.66 1.34 3 3 3 .83 0 1.58-.34 2.12-.88.55.54 1.3.88 2.13.88 1.66 0 3-1.34 3-3 0-1.44-.94-2.76-2.29-3.44-.81-.41-1.34-1.24-1.34-2.21z"/></svg>','Entertainment': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-7C10.62 9.5 9.5 10.62 9.5 12s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S13.38 9.5 12 9.5z"/></svg>','Shopping': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg>','Health': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 13h-3v3h-2v-3H8v-2h3V9.99h2V13h3v2z"/></svg>','Other': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z"/></svg>','Default': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>'};
+            const categoryColors = { 'Food': '#FF5A8D', 'Transport': '#5A9CFF', 'Salary': '#00FAD9', 'Utilities': '#FFC95A', 'Entertainment': '#B15AFF', 'Shopping': '#FF81A7', 'Health': '#80FDE0', 'Other': '#8DBBFF', 'Default': '#A0A0A0' };
+
+            const db = {
+                load: () => {
+                    const transactions = localStorage.getItem('transactions_v2');
+                    const categories = localStorage.getItem('categories_v2');
+                    const recurring = localStorage.getItem('recurringTransactions_v2');
+                    const lastVisit = localStorage.getItem('lastVisit_v2');
+                    
+                    if (transactions) state.transactions = JSON.parse(transactions);
+                    if (categories) state.categories = JSON.parse(categories); else db.save('categories_v2', state.categories);
+                    if (recurring) state.recurringTransactions = JSON.parse(recurring);
+                    
+                    db.processRecurringTransactions(lastVisit);
+                    localStorage.setItem('lastVisit_v2', new Date().toISOString());
+                },
+                save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+                processRecurringTransactions: (lastVisitStr) => {
+                    if (!lastVisitStr) return;
+                    const lastVisit = new Date(lastVisitStr);
+                    const now = new Date();
+                    let newTransactions = [];
+                    state.recurringTransactions.forEach(item => {
+                        let nextDueDate = new Date(item.startDate);
+                        const endDate = item.endDate ? new Date(item.endDate) : null;
+                        while(nextDueDate <= lastVisit) {
+                            nextDueDate = getNextDueDate(nextDueDate, item.frequency);
+                        }
+                        while (nextDueDate <= now && (!endDate || nextDueDate <= endDate)) {
+                            const alreadyExists = state.transactions.some(t => 
+                                t.recurringId === item.id && new Date(t.date).toDateString() === nextDueDate.toDateString()
+                            );
+                            if (!alreadyExists) {
+                                newTransactions.push({
+                                    ...item.transactionDetails,
+                                    id: `txn_${Date.now()}_${Math.random()}`,
+                                    date: nextDueDate.toISOString().split('T')[0],
+                                    recurringId: item.id
+                                });
+                            }
+                            nextDueDate = getNextDueDate(nextDueDate, item.frequency);
+                        }
+                    });
+                    if (newTransactions.length > 0) {
+                        state.transactions.push(...newTransactions);
+                        db.save('transactions_v2', state.transactions);
+                    }
+                },
+                clearAll: () => {
+                    localStorage.removeItem('transactions_v2');
+                    localStorage.removeItem('categories_v2');
+                    localStorage.removeItem('recurringTransactions_v2');
+                    localStorage.removeItem('lastVisit_v2');
+                    state.transactions = [];
+                    state.categories = [...initialCategories];
+                    state.recurringTransactions = [];
+                    state.currentDate = new Date();
+                    renderUI();
+                }
+            };
+
+            const appHeader=document.querySelector(".app-header"),summaryCards=document.querySelectorAll(".summary-card"),budgetOverview=document.querySelector(".budget-overview"),headerDateEl=document.getElementById("headerDate"),prevMonthBtn=document.getElementById("prevMonthBtn"),nextMonthBtn=document.getElementById("nextMonthBtn"),totalIncomeEl=document.getElementById("totalIncome"),totalExpensesEl=document.getElementById("totalExpenses"),balanceEl=document.getElementById("balance"),transactionsContainerEl=document.getElementById("transactionsContainer"),transactionModal=document.getElementById("transactionModal"),addTransactionBtn=document.getElementById("addTransactionBtn"),closeTransactionModalBtn=document.getElementById("closeTransactionModalBtn"),transactionForm=document.getElementById("transactionForm"),modalTitle=document.getElementById("modalTitle"),expenseToggleBtn=document.getElementById("expenseToggleBtn"),incomeToggleBtn=document.getElementById("incomeToggleBtn"),settingsModal=document.getElementById("settingsModal"),openSettingsBtn=document.getElementById("openSettingsBtn"),closeSettingsModalBtn=document.getElementById("closeSettingsModalBtn"),recurringListEl=document.getElementById("recurringList"),clearDataBtn=document.getElementById("clearDataBtn"),confirmModal=document.getElementById("confirmModal"),cancelConfirmBtn=document.getElementById("cancelConfirmBtn"),confirmBtn=document.getElementById("confirmBtn");
+            let activeTransactionType="expense",currentEditId=null;
+            const formatCurrency=t=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(t),getNextDueDate=(t,e)=>{const s=new Date(t);switch(e){case"daily":s.setDate(s.getDate()+1);break;case"weekly":s.setDate(s.getDate()+7);break;case"monthly":s.setMonth(s.getMonth()+1);break;case"yearly":s.setFullYear(s.getFullYear()+1)}return s};
+
+            const renderUI=()=>{renderHeader(),renderSummary(),renderTransactions(),renderCategories(),renderRecurringList(),renderExpenseBreakdown(),runAnimations()};
+            const runAnimations=()=>{[appHeader,...summaryCards,budgetOverview].forEach((t,e)=>{t.style.animation="none",t.offsetHeight,t.style.animation=`fadeIn 0.5s ease-out ${.05*e}s forwards`})};
+            const renderHeader=()=>{headerDateEl.textContent=state.currentDate.toLocaleDateString("en-GB",{month:"long",year:"numeric"})};
+            const renderSummary=()=>{const t=state.transactions.filter(t=>{const e=new Date(t.date);return e.getMonth()===state.currentDate.getMonth()&&e.getFullYear()===state.currentDate.getFullYear()}),e=t.filter(t=>"income"===t.type).reduce((t,e)=>t+e.amount,0),s=t.filter(t=>"expense"===t.type).reduce((t,e)=>t+e.amount,0);totalIncomeEl.textContent=formatCurrency(e),totalExpensesEl.textContent=formatCurrency(s),balanceEl.textContent=formatCurrency(e-s),balanceEl.style.color=e-s>=0?"var(--accent-teal)":"var(--accent-pink)"};
+            const renderTransactions=()=>{transactionsContainerEl.innerHTML="";const t=state.transactions.filter(t=>{const e=new Date(t.date);return e.getMonth()===state.currentDate.getMonth()&&e.getFullYear()===state.currentDate.getFullYear()}).sort((t,e)=>new Date(e.date)-new Date(t.date));if(0===t.length)return void(transactionsContainerEl.innerHTML='<div class="empty-state fade-in"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5.99h.01M19.5 10.5c0 7.18-7.82 9-9 9s-9-1.82-9-9 4.03-9 9-9 9 1.82 9 9z"></path></svg><p>No transactions yet.<br>Tap the \'+\' button to add one.</p></div>');t.forEach((t,e)=>{const s=document.createElement("div"),a="income"===t.type;s.className=`transaction-item ${a?"income":"expense"}`,s.style.animationDelay=`${.05*e}s`,s.classList.add("fade-in"),s.dataset.id=t.id;const r=a?"+":"-",n=a?"income-amount":"expense-amount",i=categoryIcons[t.category]||categoryIcons.Default;s.innerHTML=`<div class="transaction-item-content"><div class="transaction-icon ${a?"income":"expense"}">${i}</div><div class="transaction-details"><p>${t.description}</p><p>${t.category} &bull; ${new Date(t.date).toLocaleDateString("en-GB")}</p></div><p class="transaction-amount ${n}">${r}${formatCurrency(t.amount)}</p></div><div class="transaction-actions"><button class="action-btn edit" data-id="${t.id}" aria-label="Edit"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg></button><button class="action-btn delete" data-id="${t.id}" aria-label="Delete"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div>`,transactionsContainerEl.appendChild(s)})};
+
+            const renderExpenseBreakdown=()=>{const container=document.getElementById("expenseBreakdownContainer");container.innerHTML="";const expenses=state.transactions.filter(t=>{const d=new Date(t.date);return d.getMonth()===state.currentDate.getMonth()&&d.getFullYear()===state.currentDate.getFullYear()&&t.type==="expense"});const totalExpenses=expenses.reduce((sum,t)=>sum+t.amount,0);if(0===totalExpenses)return void(container.innerHTML='<div class="empty-state fade-in" style="padding: 10px 0;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"></path></svg><p>No expense data to show.</p></div>');const categoryTotals=expenses.reduce((acc,t)=>{acc[t.category]=(acc[t.category]||0)+t.amount;return acc},{});const sortedCategories=Object.entries(categoryTotals).sort((a,b)=>b[1]-a[1]);sortedCategories.forEach(([category,amount])=>{const percentage=(amount/totalExpenses)*100;const item=document.createElement("div");item.className="breakdown-item";const color=categoryColors[category]||categoryColors.Default;item.innerHTML=`<div class="breakdown-item-header"><span class="breakdown-item-category">${category}</span><span class="breakdown-item-amount">${formatCurrency(amount)}</span></div><div class="progress-bar-background"><div class="progress-bar-foreground" style="width: ${percentage}%; background: linear-gradient(90deg, ${color} 0%, ${color}b3 100%);"></div></div>`;container.appendChild(item)})};
+            
+            const renderCategories=()=>{const t=document.getElementById("category");t.innerHTML="",state.categories.forEach(e=>{const s=document.createElement("option");s.value=e,s.textContent=e,t.appendChild(s)})},renderRecurringList=()=>{const t=document.getElementById("recurringList");if(t.innerHTML="",0===state.recurringTransactions.length)return void(t.innerHTML="<li>No recurring transactions.</li>");state.recurringTransactions.forEach(e=>{const s=document.createElement("li");s.innerHTML=`<span>${e.transactionDetails.description} (${formatCurrency(e.transactionDetails.amount)}, ${e.frequency})</span><button class="delete-recurring-btn" data-id="${e.id}" aria-label="Delete recurring transaction"><svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button>`,t.appendChild(s)})};
+            const openModal=t=>t.classList.add("open"),closeModal=t=>t.classList.remove("open");addTransactionBtn.addEventListener("click",()=>{currentEditId=null,modalTitle.textContent="Add Transaction",transactionForm.reset(),document.getElementById("recurring").parentElement.parentElement.style.display="block",document.getElementById("date").valueAsDate=new Date,setActiveToggle("expense"),toggleRecurringOptions(!1),openModal(transactionModal)}),[closeTransactionModalBtn,closeSettingsModalBtn,cancelConfirmBtn].forEach(t=>t.addEventListener("click",()=>closeModal(t.closest(".modal")))),[transactionModal,settingsModal,confirmModal].forEach(t=>t.addEventListener("click",e=>{e.target===t&&closeModal(t)})),openSettingsBtn.addEventListener("click",()=>openModal(settingsModal)),prevMonthBtn.addEventListener("click",()=>{state.currentDate.setMonth(state.currentDate.getMonth()-1),renderUI()}),nextMonthBtn.addEventListener("click",()=>{state.currentDate.setMonth(state.currentDate.getMonth()+1),renderUI()});
+            const setActiveToggle=t=>{activeTransactionType=t,"expense"===t?(expenseToggleBtn.classList.add("active"),incomeToggleBtn.classList.remove("active")):(expenseToggleBtn.classList.remove("active"),incomeToggleBtn.classList.add("active"))};expenseToggleBtn.addEventListener("click",()=>setActiveToggle("expense")),incomeToggleBtn.addEventListener("click",()=>setActiveToggle("income"));
+            const toggleRecurringOptions=t=>{document.getElementById("recurringOptions").style.display=t?"block":"none"};document.getElementById("recurring").addEventListener("change",t=>toggleRecurringOptions(t.target.checked)),document.getElementById("addCategoryBtn").addEventListener("click",()=>{const t=document.getElementById("newCategory"),e=t.value.trim();e&&!state.categories.includes(e)&&(state.categories.push(e),db.save("categories_v2",state.categories),renderCategories(),document.getElementById("category").value=e,t.value="")});
+            transactionForm.addEventListener("submit",t=>{t.preventDefault();const e={type:activeTransactionType,amount:parseFloat(amount.value),description:description.value,category:category.value},s=document.getElementById("date").value;if(document.getElementById("recurring").checked&&!currentEditId){const t=document.getElementById("frequency").value,a=document.getElementById("endDate").value||null,r={id:`rec_${Date.now()}`,transactionDetails:e,frequency:t,startDate:s,endDate:a};state.recurringTransactions.push(r),db.save("recurringTransactions_v2",state.recurringTransactions),state.transactions.push({...e,id:`txn_${Date.now()}`,date:s,recurringId:r.id})}else if(currentEditId){const t=state.transactions.findIndex(t=>t.id===currentEditId);-1!==t&&(state.transactions[t]={...state.transactions[t],...e,date:s})}else state.transactions.push({...e,id:`txn_${Date.now()}`,date:s});db.save("transactions_v2",state.transactions),renderUI(),closeModal(transactionModal)});
+            transactionsContainerEl.addEventListener("click",t=>{const e=t.target.closest(".action-btn.edit"),s=t.target.closest(".action-btn.delete");e&&handleEdit(e.dataset.id),s&&handleDelete(s.dataset.id)});
+            let touchstartX=0;transactionsContainerEl.addEventListener("touchstart",t=>{touchstartX=t.changedTouches[0].screenX},!1),transactionsContainerEl.addEventListener("touchend",t=>{const e=t.target.closest(".transaction-item");if(e){document.querySelectorAll(".transaction-item.swiped").forEach(t=>{t!==e&&t.classList.remove("swiped")});const s=t.changedTouches[0].screenX;s<touchstartX-50&&e.classList.add("swiped"),s>touchstartX+50&&e.classList.remove("swiped")}},!1);
+            const handleEdit=t=>{const e=state.transactions.find(e=>e.id===t);e&&(currentEditId=t,modalTitle.textContent="Edit Transaction",transactionForm.reset(),document.getElementById("transactionId").value=e.id,setActiveToggle(e.type),amount.value=e.amount,description.value=e.description,category.value=e.category,date.value=e.date,toggleRecurringOptions(!1),document.getElementById("recurring").checked=!1,document.getElementById("recurring").parentElement.parentElement.style.display="none",openModal(transactionModal))},handleDelete=t=>{state.transactions=state.transactions.filter(e=>e.id!==t),db.save("transactions_v2",state.transactions),renderUI()};
+            recurringListEl.addEventListener("click",t=>{const e=t.target.closest(".delete-recurring-btn");e&&(state.recurringTransactions=state.recurringTransactions.filter(t=>t.id!==e.dataset.id),db.save("recurringTransactions_v2",state.recurringTransactions),renderRecurringList())}),clearDataBtn.addEventListener("click",()=>openModal(confirmModal)),confirmBtn.addEventListener("click",()=>{db.clearAll(),closeModal(confirmModal),closeModal(settingsModal)});
+            
+            // --- Particle Animation ---
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particlesArray = [];
+            const numberOfParticles = 30;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 1;
+                    this.speedX = Math.random() * 0.4 - 0.2;
+                    this.speedY = Math.random() * 0.4 - 0.2;
+                    this.color = 'rgba(0, 250, 217, 0.2)';
+                }
+                update() {
+                    if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
+                    if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            function initParticles() {
+                particlesArray = [];
+                for (let i = 0; i < numberOfParticles; i++) {
+                    particlesArray.push(new Particle());
+                }
+            }
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                    particlesArray[i].draw();
+                }
+                requestAnimationFrame(animateParticles);
+            }
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                initParticles();
+            });
+            
+            const init=()=>{db.load(),renderUI(),initParticles(),animateParticles()};
+            init();
+        });
+    </script>
+</body>
+</html>

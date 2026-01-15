@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Personal Budget</title>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -400,9 +399,7 @@
 </head>
 <body>
     <canvas id="particle-canvas"></canvas>
-    <!-- Main App Container -->
     <div class="app-container">
-        <!-- Header -->
         <header class="app-header">
             <div class="month-navigator">
                 <button class="nav-btn" id="prevMonthBtn" aria-label="Previous Month"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
@@ -412,27 +409,23 @@
             <button class="settings-btn" id="openSettingsBtn" aria-label="Open Settings"><svg viewBox="0 0 24 24"><path d="M19.4,12c0-0.2,0-0.4,0-0.6c0-1.5-0.5-2.9-1.3-4.1l1.1-1.1c0.6-0.6,0.6-1.5,0-2.1l-1.4-1.4c-0.6-0.6-1.5-0.6-2.1,0L14.6,3.8 C13.4,3,12,2.5,10.5,2.5c-0.2,0-0.4,0-0.6,0C8.4,2.6,7,3.1,5.8,3.8L4.7,2.7c-0.6-0.6-1.5-0.6-2.1,0L1.2,4.1c-0.6,0.6-0.6,1.5,0,2.1 l1.1,1.1C1.5,8.5,1,9.9,1,11.4c0,0.2,0,0.4,0,0.6c-0.1,1.5,0.4,2.9,1.2,4.1L1.2,17.3c-0.6,0.6-0.6,1.5,0,2.1l1.4,1.4 c0.6,0.6,1.5,0.6,2.1,0l1.1-1.1c1.2,0.8,2.6,1.3,4.1,1.3c0.2,0,0.4,0,0.6,0c1.5-0.1,2.9-0.5,4.1-1.3l1.1,1.1c0.6,0.6,1.5,0.6,2.1,0 l1.4-1.4c0.6-0.6,0.6-1.5,0-2.1l-1.1-1.1C18.9,14.9,19.4,13.5,19.4,12z M12,15.5c-1.9,0-3.5-1.6-3.5-3.5s1.6-3.5,3.5-3.5 s3.5,1.6,3.5,3.5S13.9,15.5,12,15.5z"/></svg></button>
         </header>
 
-        <!-- Summary -->
         <section class="summary-grid">
             <div class="summary-card"><h3 >Income</h3><p id="totalIncome" class="income-amount">£0.00</p></div>
             <div class="summary-card"><h3 >Expenses</h3><p id="totalExpenses" class="expense-amount">£0.00</p></div>
             <div class="summary-card balance"><h3 >Balance</h3><p id="balance">£0.00</p></div>
         </section>
 
-        <!-- Budget Overview -->
         <section class="budget-overview">
             <h3>Expense Breakdown</h3>
             <div id="expenseBreakdownContainer"></div>
         </section>
 
-        <!-- Transaction List -->
         <section class="transaction-list">
             <h3>Transactions</h3>
             <div id="transactionsContainer"></div>
         </section>
     </div>
 
-    <!-- Modals and FAB -->
     <button class="fab" id="addTransactionBtn" aria-label="Add Transaction"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
     <div id="transactionModal" class="modal">
         <div class="modal-content">
@@ -457,10 +450,39 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const initialCategories = ['Food', 'Transport', 'Salary', 'Utilities', 'Entertainment', 'Shopping', 'Health', 'Other'];
+            // UPDATED: Added 'Education' and 'Clubs' to the initial list
+            const initialCategories = ['Food', 'Transport', 'Salary', 'Utilities', 'Entertainment', 'Shopping', 'Health', 'Education', 'Clubs', 'Other'];
             const state = { transactions: [], categories: [...initialCategories], recurringTransactions: [], currentDate: new Date() };
-            const categoryIcons = {'Food': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>','Transport': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM3 10V6h10v4H3z"/></svg>','Salary': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.11-.9-2-2-2zm-1 14H5c-.55 0-1-.45-1-1v-5h16v5c0 .55-.45 1-1 1zm1-10H4V7c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v1z"/></svg>','Utilities': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.89 0 1.74-.12 2.55-.33-.3-.49-.55-1.06-.55-1.67 0-1.66 1.34-3 3-3 .61 0 1.18.25 1.67.56.21-.81.33-1.66.33-2.56 0-5.52-4.48-10-10-10zm2.71 11.6c-.33.33-.77.53-1.24.53-1.02 0-1.85-.83-1.85-1.85 0-.47.19-.92.53-1.24.32-.33.52-.77.52-1.25s-.2-1-.53-1.24c-.32-.33-.77-.52-1.24-.52-1.02 0-1.85.83-1.85 1.85 0 .47.2.92.53 1.24.33.32.53.77.53 1.25 0 .97-.53 1.8-1.34 2.21-1.35.68-2.29 2-2.29 3.44 0 1.66 1.34 3 3 3 .83 0 1.58-.34 2.12-.88.55.54 1.3.88 2.13.88 1.66 0 3-1.34 3-3 0-1.44-.94-2.76-2.29-3.44-.81-.41-1.34-1.24-1.34-2.21z"/></svg>','Entertainment': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-7C10.62 9.5 9.5 10.62 9.5 12s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S13.38 9.5 12 9.5z"/></svg>','Shopping': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg>','Health': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 13h-3v3h-2v-3H8v-2h3V9.99h2V13h3v2z"/></svg>','Other': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z"/></svg>','Default': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>'};
-            const categoryColors = { 'Food': '#FF5A8D', 'Transport': '#5A9CFF', 'Salary': '#00FAD9', 'Utilities': '#FFC95A', 'Entertainment': '#B15AFF', 'Shopping': '#FF81A7', 'Health': '#80FDE0', 'Other': '#8DBBFF', 'Default': '#A0A0A0' };
+            
+            // UPDATED: Added icons for Education (mortarboard) and Clubs (group)
+            const categoryIcons = {
+                'Food': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>',
+                'Transport': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM3 10V6h10v4H3z"/></svg>',
+                'Salary': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.11-.9-2-2-2zm-1 14H5c-.55 0-1-.45-1-1v-5h16v5c0 .55-.45 1-1 1zm1-10H4V7c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v1z"/></svg>',
+                'Utilities': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.89 0 1.74-.12 2.55-.33-.3-.49-.55-1.06-.55-1.67 0-1.66 1.34-3 3-3 .61 0 1.18.25 1.67.56.21-.81.33-1.66.33-2.56 0-5.52-4.48-10-10-10zm2.71 11.6c-.33.33-.77.53-1.24.53-1.02 0-1.85-.83-1.85-1.85 0-.47.19-.92.53-1.24.32-.33.52-.77.52-1.25s-.2-1-.53-1.24c-.32-.33-.77-.52-1.24-.52-1.02 0-1.85.83-1.85 1.85 0 .47.2.92.53 1.24.33.32.53.77.53 1.25 0 .97-.53 1.8-1.34 2.21-1.35.68-2.29 2-2.29 3.44 0 1.66 1.34 3 3 3 .83 0 1.58-.34 2.12-.88.55.54 1.3.88 2.13.88 1.66 0 3-1.34 3-3 0-1.44-.94-2.76-2.29-3.44-.81-.41-1.34-1.24-1.34-2.21z"/></svg>',
+                'Entertainment': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-7C10.62 9.5 9.5 10.62 9.5 12s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S13.38 9.5 12 9.5z"/></svg>',
+                'Shopping': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg>',
+                'Health': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 13h-3v3h-2v-3H8v-2h3V9.99h2V13h3v2z"/></svg>',
+                'Education': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>',
+                'Clubs': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
+                'Other': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z"/></svg>',
+                'Default': '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>'
+            };
+            
+            // UPDATED: Added colors for Education and Clubs
+            const categoryColors = { 
+                'Food': '#FF5A8D', 
+                'Transport': '#5A9CFF', 
+                'Salary': '#00FAD9', 
+                'Utilities': '#FFC95A', 
+                'Entertainment': '#B15AFF', 
+                'Shopping': '#FF81A7', 
+                'Health': '#80FDE0', 
+                'Education': '#F4A261', // Orange/Gold
+                'Clubs': '#2A9D8F', // Teal/Green
+                'Other': '#8DBBFF', 
+                'Default': '#A0A0A0' 
+            };
 
             const db = {
                 load: () => {
@@ -470,7 +492,24 @@
                     const lastVisit = localStorage.getItem('lastVisit_v2');
                     
                     if (transactions) state.transactions = JSON.parse(transactions);
-                    if (categories) state.categories = JSON.parse(categories); else db.save('categories_v2', state.categories);
+                    
+                    if (categories) {
+                        state.categories = JSON.parse(categories);
+                        // UPDATED: Migration check for existing users
+                        // If they don't have Education or Clubs, add them without deleting their custom categories
+                        const newDefaults = ['Education', 'Clubs'];
+                        let needsUpdate = false;
+                        newDefaults.forEach(cat => {
+                            if (!state.categories.includes(cat)) {
+                                state.categories.push(cat);
+                                needsUpdate = true;
+                            }
+                        });
+                        if (needsUpdate) db.save('categories_v2', state.categories);
+                    } else {
+                        db.save('categories_v2', state.categories);
+                    }
+
                     if (recurring) state.recurringTransactions = JSON.parse(recurring);
                     
                     db.processRecurringTransactions(lastVisit);
